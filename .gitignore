@@ -1,0 +1,8 @@
+*.iml
+*/conf/*
+*/data*
+*/openw_data/*
+.idea/*
+util_test.go
+*.json
+README.md
