@@ -13,7 +13,7 @@ type WalletManager struct {
 
 	Config          *WalletConfig                   // 节点配置
 	Decoder         openwallet.AddressDecoder       //地址编码器
-	DecoderV2         openwallet.AddressDecoderV2       //地址编码器
+	DecoderV2       openwallet.AddressDecoderV2     //地址编码器
 	TxDecoder       openwallet.TransactionDecoder   //交易单编码器
 	Log             *log.OWLogger                   //日志工具
 	ContractDecoder openwallet.SmartContractDecoder //智能合约解析器
@@ -27,7 +27,7 @@ func NewWalletManager() *WalletManager {
 	wm.Config = NewConfig(Symbol)
 	wm.Blockscanner = NewIQCBlockScanner(&wm)
 	wm.Decoder = NewAddressDecoder(&wm)
-	wm.Decoder = iqchain_addrec.AddressDecoderV2{}
+	wm.DecoderV2 = &iqchain_addrec.AddressDecoderV2{}
 	wm.TxDecoder = NewTransactionDecoder(&wm)
 	wm.Log = log.NewOWLogger(wm.Symbol())
 
