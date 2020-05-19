@@ -37,6 +37,9 @@ func (dec *AddressDecoderV2) AddressEncode(hash []byte, opts ...interface{}) (st
 
 // AddressVerify 地址校验
 func (dec *AddressDecoderV2) AddressVerify(address string, opts ...interface{}) bool {
-
-	return true
+	veri,err := crypto.ValidateAddress(address)
+	if err == nil && veri {
+		return true
+	}
+	return false
 }
