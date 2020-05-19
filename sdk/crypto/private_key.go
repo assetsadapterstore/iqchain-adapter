@@ -9,12 +9,9 @@ package crypto
 
 import (
 	"crypto/sha256"
-	"fmt"
-	"math/big"
 
+	"github.com/assetsadapterstore/iqchain-adapter/sdk/crypto/base58"
 	"github.com/btcsuite/btcd/btcec"
-	b58 "github.com/btcsuite/btcutil/base58"
-	"github.com/hbakhtiyor/schnorr"
 )
 
 func PrivateKeyFromPassphrase(passphrase string) (*PrivateKey, error) {
@@ -64,14 +61,18 @@ func (privateKey *PrivateKey) ToWif() string {
 		p = append(p, 0x1)
 	}
 
-	return b58.CheckEncode(p, privateKey.PublicKey.Network.Wif)
+	p = append(p, 0x0)
+	copy(p[1:], p[:len(p)-1])
+	p[0] = privateKey.PublicKey.Network.Wif
+
+	return base58.Encode(p)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // CRYPTOGRAPHY ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-func (privateKey *PrivateKey) SignECDSA(hash []byte) ([]byte, error) {
+func (privateKey *PrivateKey) Sign(hash []byte) ([]byte, error) {
 	signed, err := privateKey.PrivateKey.Sign(hash)
 
 	if err != nil {
@@ -81,32 +82,18 @@ func (privateKey *PrivateKey) SignECDSA(hash []byte) ([]byte, error) {
 	return signed.Serialize(), nil
 }
 
-func (privateKey *PrivateKey) SignSchnorr(hash []byte) ([]byte, error) {
-	if len(hash) != 32 {
-		return nil, fmt.Errorf("SignSchnorr: message hash is %d bytes, should be 32", len(hash))
-	}
-
-	privKeyInt := new(big.Int).SetBytes(privateKey.PrivateKey.Serialize())
-
-	var hashArr [32]byte
-	copy(hashArr[:], hash)
-
-	signed, err := schnorr.Sign(privKeyInt, hashArr)
+func (publicKey *PublicKey) Verify(signature []byte, data []byte) (bool, error) {
+	parsedSignature, err := btcec.ParseSignature(signature, btcec.S256())
 
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	return signed[:], nil
-}
+	verified := parsedSignature.Verify(data, publicKey.PublicKey)
 
-func (privateKey *PrivateKey) Sign(hash []byte) ([]byte, error) {
-	switch CONFIG_SIGNATURE_TYPE {
-	case SIGNATURE_TYPE_ECDSA:
-		return privateKey.SignECDSA(hash)
-	case SIGNATURE_TYPE_SCHNORR:
-		return privateKey.SignSchnorr(hash)
+	if !verified {
+		return false, nil
 	}
 
-	return nil, fmt.Errorf("Sign: unknown signature type configured: %d", CONFIG_SIGNATURE_TYPE)
+	return true, nil
 }

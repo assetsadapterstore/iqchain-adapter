@@ -7,8 +7,12 @@
 
 package client
 
+import (
+	"github.com/assetsadapterstore/iqchain-adapter/sdk/crypto"
+)
+
 type CreateTransactionRequest struct {
-	Transactions []Transaction2 `json:"transactions,omitempty"`
+	Transactions []crypto.Transaction `json:"transactions,omitempty"`
 }
 
 type TransactionsSearchRequest struct {

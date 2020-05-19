@@ -8,9 +8,7 @@
 package crypto
 
 import (
-	"errors"
-
-	b58 "github.com/btcsuite/btcutil/base58"
+	"github.com/assetsadapterstore/iqchain-adapter/sdk/crypto/base58"
 )
 
 func AddressFromPassphrase(passphrase string) (string, error) {
@@ -23,16 +21,22 @@ func AddressFromPassphrase(passphrase string) (string, error) {
 	return privateKey.ToAddress(), nil
 }
 
+func AddressToBytes(address string) ([]byte, error) {
+	bytes, err := base58.Decode(address)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
+}
+
 func ValidateAddress(address string) (bool, error) {
-	_, version, err := b58.CheckDecode(address)
+	bytes, err := AddressToBytes(address)
 
 	if err != nil {
 		return false, err
 	}
 
-	if GetNetwork().Version != version {
-		return false, errors.New("network version mismatch")
-	}
-
-	return true, nil
+	return Byte2Hex(GetNetwork().Version) == Hex2Byte(bytes[:1]), nil
 }

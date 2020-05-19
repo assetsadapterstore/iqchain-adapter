@@ -16,13 +16,10 @@ var (
 		TRANSACTION_FEES.Vote,
 		TRANSACTION_FEES.MultiSignatureRegistration,
 		TRANSACTION_FEES.Ipfs,
+		TRANSACTION_FEES.TimelockTransfer,
 		TRANSACTION_FEES.MultiPayment,
 		TRANSACTION_FEES.DelegateResignation,
-		TRANSACTION_FEES.HtlcLock,
-		TRANSACTION_FEES.HtlcClaim,
-		TRANSACTION_FEES.HtlcRefund,
 	}
-	CONFIG_SIGNATURE_TYPE = SIGNATURE_TYPE_SCHNORR
 )
 
 func GetNetwork() *Network {
@@ -37,10 +34,10 @@ func SetNetwork(network *Network) {
 	CONFIG_NETWORK = network
 }
 
-func GetFee(transactionType uint16) FlexToshi {
+func GetFee(transactionType byte) FlexToshi {
 	return CONFIG_FEES[transactionType]
 }
 
-func SetFee(transactionType uint16, value FlexToshi) {
+func SetFee(transactionType byte, value FlexToshi) {
 	CONFIG_FEES[transactionType] = value
 }

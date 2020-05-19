@@ -1,7 +1,7 @@
 package iqchain_addrec
 
 import (
-	"github.com/assetsadapterstore/iqchain-adapter/sdk/crypto2"
+	"github.com/assetsadapterstore/iqchain-adapter/sdk/crypto"
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/blocktree/openwallet/v2/openwallet"
 )
@@ -19,7 +19,7 @@ type AddressDecoderV2 struct {
 func GetAddressFromPublicKey(publicKey []byte) string {
 	//publicKeyHash := sha256.Sum256(publicKey)
 
-	pk, err := crypto2.PublicKeyFromBytes(publicKey)
+	pk, err := crypto.PublicKeyFromBytes(publicKey)
 	if err != nil {
 		log.Error(err)
 	}

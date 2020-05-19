@@ -13,7 +13,7 @@ import (
 	"log"
 	"strings"
 
-	b58 "github.com/btcsuite/btcutil/base58"
+	"github.com/assetsadapterstore/iqchain-adapter/sdk/crypto/base58"
 )
 
 func Byte2Hex(data byte) string {
@@ -38,12 +38,16 @@ func HexDecode(data string) []byte {
 	return result
 }
 
-func Base58CheckDecodeFatal(data string) []byte {
-	decoded, version, err := b58.CheckDecode(data)
+func Base58Encode(data []byte) string {
+	return base58.Encode(data)
+}
+
+func Base58Decode(data string) []byte {
+	result, err := base58.Decode(data)
 
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	return append([]byte{version}, decoded...)
+	return result
 }

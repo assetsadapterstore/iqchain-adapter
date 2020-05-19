@@ -17,5 +17,5 @@ func GetTime() int32 {
 }
 
 func GetEpoch() uint32 {
-	return 40505460
+	return uint32(GetNetwork().Epoch.Second())
 }

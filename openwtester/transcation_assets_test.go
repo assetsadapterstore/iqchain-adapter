@@ -118,26 +118,26 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 
 func TestTransfer(t *testing.T) {
 	tm := testInitWalletManager()
-	walletID := "WMSVS51x4XgWNgd354yxd4yC7CrESsA8dN"
-	accountID := "4bpD665trhfF69MeZQUj5hpCqogfetEwWoGTrRMSuxvV"
+	walletID := "W38Moc6GVADg7BbRNHfX6mK4gVo5txvZZb"
+	accountID := "2qbjSh7WG1LA4yxUdrSpzp7rHjzqKynzQFvJUggYizzE"
 	//accountID := "4bpD665trhfF69MeZQUj5hpCqogfetEwWoGTrRMSuxvV"
 	//to := "APWPMowFEb6KdVn9FRvdgdWZMVo1wmnwvp"
 	//accountID := "F7aeTnSdjEA16x4H3n1vPtDEo9Xp5Vus11pwY5QF6K3y"
 
 	address := []string{
-		//"ARyLumALdp5nVCaUeVQebjd7kAkPDfFkBN",
-		//"ARppp4adUpoRW9dk7Vn2gGUasNSesb4dhr",
-		//"ATAineEreLjeFVfnAzxL9XnKAsHY5PziMJ",
-		"AXDuaEtps2yWjE2VydaVCahwbiueZAdnSG",
-		"AXE85jSY3L5YBLRh9UZsYYZWEUZMHexBih",
-		"AXDzyPuPMqTpphPo6TzKeKJKPqWJ1ugThH",
+		"QN2sqMw7gnh8QFLmBnhaUZVUQiVHPV2kpt",
+		"QMeaHU6F3HguLXaRnjS7axhbWji3gBvQzQ",
+		"QNanVYg7bzgTf3mDvEFV7qYABs8mCNUN8i",
+		"QLwy47edCUnw299J25C2LBnaAQhtDCZ5vR",
+		"QMN8ks9ge9wuit2pJmRkMai1MJKYUsYKYe",
+		"QMbJbUKkKXDVyy5EDtVdzhTHisF12JkBDs",
 	}
 
 	for i := 0; i < len(address); i++ {
 		to := address[i%len(address)]
 		testGetAssetsAccountBalance(tm, walletID, accountID)
 
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.2", "", "", nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.5", "", "", nil)
 		if err != nil {
 			return
 		}
@@ -163,10 +163,10 @@ func TestTransfer(t *testing.T) {
 
 func TestSummary(t *testing.T) {
 	tm := testInitWalletManager()
-	walletID := "WMSVS51x4XgWNgd354yxd4yC7CrESsA8dN"
+	walletID := "W38Moc6GVADg7BbRNHfX6mK4gVo5txvZZb"
 	//accountID := "4bpD665trhfF69MeZQUj5hpCqogfetEwWoGTrRMSuxvV"
-	accountID := "GF3DqiUyNQi2RBqDC7KPJZ5SpARdy51Qn5tH4E5JBrgu"
-	summaryAddress := "AQTdNMzKsvG6Qyw2KAtc7Wx5ZekVfgCM5G"
+	accountID := "3fCy844jY25CGJXe8boJh7grYqMAK2Un2TJ4q3AjfnrD"
+	summaryAddress := "QUXwCuXw8Vp7J4QkKLYQgWw3Nq3im9LM5H"
 
 	//contract := openwallet.SmartContract{
 	//	Address:  "eosio.token",
@@ -180,7 +180,7 @@ func TestSummary(t *testing.T) {
 
 	rawTxArray, err := testCreateSummaryTransactionStep(tm, walletID, accountID,
 		summaryAddress, "", "", "",
-		4002, 100, nil)
+		0, 250, nil)
 	if err != nil {
 		log.Errorf("CreateSummaryTransaction failed, unexpected error: %v", err)
 		return

@@ -35,22 +35,15 @@ type PublicKey struct {
 }
 
 type TransactionTypes struct {
-	Transfer                    uint16
-	SecondSignatureRegistration uint16
-	DelegateRegistration        uint16
-	Vote                        uint16
-	MultiSignatureRegistration  uint16
-	Ipfs                        uint16
-	MultiPayment                uint16
-	DelegateResignation         uint16
-	HtlcLock                    uint16
-	HtlcClaim                   uint16
-	HtlcRefund                  uint16
-}
-
-type TransactionTypeGroups struct {
-	Test uint32
-	Core uint32
+	Transfer                    byte
+	SecondSignatureRegistration byte
+	DelegateRegistration        byte
+	Vote                        byte
+	MultiSignatureRegistration  byte
+	Ipfs                        byte
+	TimelockTransfer            byte
+	MultiPayment                byte
+	DelegateResignation         byte
 }
 
 type TransactionFees struct {
@@ -60,11 +53,9 @@ type TransactionFees struct {
 	Vote                        FlexToshi
 	MultiSignatureRegistration  FlexToshi
 	Ipfs                        FlexToshi
+	TimelockTransfer            FlexToshi
 	MultiPayment                FlexToshi
 	DelegateResignation         FlexToshi
-	HtlcLock                    FlexToshi
-	HtlcClaim                   FlexToshi
-	HtlcRefund                  FlexToshi
 }
 
 func (fi *FlexToshi) UnmarshalJSON(b []byte) error {
@@ -85,26 +76,28 @@ func (fi *FlexToshi) UnmarshalJSON(b []byte) error {
 }
 
 type Transaction struct {
-	// XXX check that all relevant fields are set in all Build*() methods
 	Amount                FlexToshi         `json:"amount,omitempty"`
 	Asset                 *TransactionAsset `json:"asset,omitempty"`
 	Expiration            uint32            `json:"expiration,omitempty"`
 	Fee                   FlexToshi         `json:"fee,omitempty"`
 	Id                    string            `json:"id,omitempty"`
-	SenderId              string            `json:"senderId,omitempty"`
 	Network               byte              `json:"network,omitempty"`
+	SenderId              string            `json:"-"`
 	Nonce                 uint64            `json:"nonce,omitempty,string"`
 	RecipientId           string            `json:"recipientId,omitempty"`
 	SecondSenderPublicKey string            `json:"secondSenderPublicKey,omitempty"`
 	SecondSignature       string            `json:"secondSignature,omitempty"`
 	SenderPublicKey       string            `json:"senderPublicKey,omitempty"`
-	Serialized            []byte            `json:"serialized,omitempty"`
+	Serialized            string            `json:"serialized,omitempty"`
 	Signature             string            `json:"signature,omitempty"`
 	Signatures            []string          `json:"signatures,omitempty"`
+	SignSignature         string            `json:"signSignature,omitempty"`
+	Timelock              uint32            `json:"timelock,omitempty"`
+	TimelockType          string            `json:"timelockType,omitempty"`
 	Timestamp             int32             `json:"timestamp,omitempty"`
-	Type                  uint16            `json:"type"`
-	TypeGroup             uint32            `json:"typeGroup"`
+	Type                  byte              `json:"type"`
 	VendorField           string            `json:"vendorField,omitempty"`
+	VendorFieldHex        string            `json:"vendorFieldHex,omitempty"`
 	Version               byte              `json:"version,omitempty"`
 }
 
@@ -120,14 +113,12 @@ type Message struct {
 
 type TransactionAsset struct {
 	Votes          []string                          `json:"votes,omitempty"`
+	Dag            string                            `json:"dag,omitempty"`
 	Signature      *SecondSignatureRegistrationAsset `json:"signature,omitempty"`
 	Delegate       *DelegateAsset                    `json:"delegate,omitempty"`
-	MultiSignature *MultiSignatureRegistrationAsset  `json:"multiSignature,omitempty"`
-	Ipfs           string                            `json:"ipfs,omitempty"`
+	MultiSignature *MultiSignatureRegistrationAsset  `json:"multisignature,omitempty"`
+	Ipfs           *IpfsAsset                        `json:"ipfs,omitempty"`
 	Payments       []*MultiPaymentAsset              `json:"payments,omitempty"`
-	Lock           *HtlcLockAsset                    `json:"lock,omitempty"`
-	Claim          *HtlcClaimAsset                   `json:"claim,omitempty"`
-	Refund         *HtlcRefundAsset                  `json:"refund,omitempty"`
 }
 
 type SecondSignatureRegistrationAsset struct {
@@ -139,30 +130,16 @@ type DelegateAsset struct {
 }
 
 type MultiSignatureRegistrationAsset struct {
-	Min        byte     `json:"min,omitempty"`
-	PublicKeys []string `json:"publicKeys,omitempty"`
+	Min       byte     `json:"min,omitempty"`
+	Keysgroup []string `json:"keysgroup,omitempty"`
+	Lifetime  byte     `json:"lifetime,omitempty"`
+}
+
+type IpfsAsset struct {
+	Dag string `json:"dag,omitempty"`
 }
 
 type MultiPaymentAsset struct {
 	Amount      FlexToshi `json:"amount,omitempty"`
 	RecipientId string    `json:"recipientId,omitempty"`
-}
-
-type HtlcLockAsset struct {
-	SecretHash string                   `json:"secretHash,omitempty"`
-	Expiration *HtlcLockExpirationAsset `json:"expiration,omitempty"`
-}
-
-type HtlcLockExpirationAsset struct {
-	Type  uint8  `json:"type,omitempty"`
-	Value uint32 `json:"value,omitempty"`
-}
-
-type HtlcClaimAsset struct {
-	LockTransactionId string `json:"lockTransactionId,omitempty"`
-	UnlockSecret      string `json:"unlockSecret,omitempty"`
-}
-
-type HtlcRefundAsset struct {
-	LockTransactionId string `json:"lockTransactionId,omitempty"`
 }

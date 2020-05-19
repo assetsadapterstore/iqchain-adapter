@@ -16,7 +16,6 @@ import (
 	"github.com/shopspring/decimal"
 	"math/big"
 	"sort"
-	"strconv"
 	"time"
 )
 
@@ -147,6 +146,11 @@ func (decoder *TransactionDecoder) createRawTransaction(
 	} else {
 		decimals = decoder.wm.Decimal()
 	}
+	//isContract := rawTx.Coin.IsContract
+	//contractAddress := rawTx.Coin.Contract.Address
+	//tokenCoin := rawTx.Coin.Contract.Token
+	//tokenDecimals := int(rawTx.Coin.Contract.Decimals)
+	//coinDecimals := this.wm.Decimal()
 
 	for k, v := range rawTx.To {
 		destination = k
@@ -179,51 +183,7 @@ func (decoder *TransactionDecoder) createRawTransaction(
 	//	return err
 	//}
 
-	addressWallet, _, err := decoder.wm.Api.Client.Wallets.Get(context.Background(), addr.Address)
-
-	if err != nil {
-		return err
-	}
-	if nonce == 0 {
-
-		nonce = addressWallet.Data.Nonce
-	}
-
-	//wrapper.SetAddressExtParam(addr.Address,"nonce",common.NewStringByUInt(69))
-	//获取db记录的nonce并确认nonce值
-	//nonce_db, ok := decoder.wm.Config.NonceMap[addr.Address]
-	//if ok && nonce != 0 {
-	//	nonce = nonce_db
-	//} else {
-	//wrapper.SetAddressExtParam(addr.Address, "nonce",nil)
-
-	nonceParamter, err := wrapper.GetAddressExtParam(addr.Address, "nonceNew1")
-
-	nonceNewTime, err2 := wrapper.GetAddressExtParam(addr.Address, "nonceNewTime")
-	if err != nil || nonceParamter == nil || nonceNewTime == nil || err2 != nil {
-		nonce = addressWallet.Data.Nonce
-	} else {
-
-		nonceTemp, err := strconv.Atoi(nonceParamter.(string))
-		if err == nil {
-			nonceNewTimeTemp, err := strconv.Atoi(nonceNewTime.(string))
-			if err == nil && time.Now().Unix()- int64(nonceNewTimeTemp) < 300 { //300秒以内不刷新
-				nonce = uint64(nonceTemp)
-			}
-
-		} else {
-			nonce = addressWallet.Data.Nonce
-		}
-	}
-
-	if nonce == 0 {
-		nonce = addressWallet.Data.Nonce
-	}
-	//}
-
-	transaction := crypto.BuildTransferMySelf(destination, crypto.FlexToshi(amount.Uint64()), addr.PublicKey, addr.Address, nonce)
-
-	decoder.wm.Config.NonceMap[transaction.SenderId] = transaction.Nonce
+	transaction := crypto.BuildTransferMySelf(destination, crypto.FlexToshi(amount.Uint64()), addr.PublicKey, addr.Address)
 
 	txRaw, err := transaction.ToJson()
 	if err != nil {
@@ -233,7 +193,7 @@ func (decoder *TransactionDecoder) createRawTransaction(
 	rawTx.RawHex = string(txRaw)
 
 	bytes := sha256.New()
-	_, err = bytes.Write(transaction.Serialize(false, false, false))
+	_, err = bytes.Write(transaction.ToBytes(true, true))
 	if err != nil {
 		return err
 	}
@@ -248,7 +208,6 @@ func (decoder *TransactionDecoder) createRawTransaction(
 		EccType: decoder.wm.Config.CurveType,
 		Address: addr,
 		Message: hex.EncodeToString(hashBytes),
-		Nonce:   strconv.FormatUint(nonce, 10),
 	}
 	keySignList = append(keySignList, &signature)
 
@@ -379,43 +338,51 @@ func (decoder *TransactionDecoder) SubmitRawTransaction(wrapper openwallet.Walle
 		return nil, fmt.Errorf("serializableTransaction decode failed, unexpected error: %v", err)
 	}
 
+	result, _ := serializableTransaction.Verify()
+	log.Warn("veri:", result)
+	//senderPk, err := hex.DecodeString(serializableTransaction.SenderPublicKey)
+	//if err != nil {
+	//	return nil,err
+	//}
+	//sig, err := hex.DecodeString(serializableTransaction.Signature)
+	//if err != nil {
+	//	return nil,err
+	//}
+	// create the SpendTransaction
+	//transaction := &transactions.Transaction{
+	//	Type:            0,
+	//	Amount:         serializableTransaction.Amount,
+	//	RecipientID:     serializableTransaction.RecipientID,
+	//	Timestamp:       serializableTransaction.Timestamp,
+	//	SenderPublicKey: senderPk,
+	//	Signature:sig,
+	//}
+
+	//tm := time.Unix(int64(serializableTransaction.Timestamp), 0)
 	rawTx.TxID = serializableTransaction.GetId()
 	serializableTransaction.Id = rawTx.TxID
-	trans := make([]client.Transaction2, 0)
-	clientTransaction := client.Transaction2{
-		//Id:              serializableTransaction.Id,
-		Version:         uint16(serializableTransaction.Version),
-		TypeGroup:       1,
-		Type:            uint16(serializableTransaction.Type),
-		Amount:          uint64(serializableTransaction.Amount),
-		Fee:             uint64(serializableTransaction.Fee),
-		SenderPublicKey: serializableTransaction.SenderPublicKey,
-		RecipientId:     serializableTransaction.RecipientId,
-		Signature:       serializableTransaction.Signature,
-		Nonce:           serializableTransaction.Nonce,
-	}
-
-	clientTransaction.Id = rawTx.TxID
-
-	trans = append(trans, clientTransaction)
+	trans := make([]crypto.Transaction,0)
+	trans = append(trans, serializableTransaction)
+	rawTx.TxID = serializableTransaction.GetId()
 	body := &client.CreateTransactionRequest{
 		Transactions: trans,
 	}
 
 	responseStruct, _, err := decoder.wm.Api.Client.Transactions.Create(context.Background(), body)
 
+	//resp, err := decoder.wm.Api.SendTransaction(decoder.wm.Context, transaction)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Infof("Transaction [%s] submitted to the network successfully.", responseStruct.Accept)
 
+
+
 	rawTx.IsSubmit = true
 
 	decimals := decoder.wm.Decimal()
 
-	wrapper.SetAddressExtParam(serializableTransaction.SenderId, "nonceNew1", common.NewStringByUInt(serializableTransaction.Nonce))
-	wrapper.SetAddressExtParam(serializableTransaction.SenderId, "nonceNewTime", common.NewStringByInt(time.Now().Unix()))
 	//记录一个交易单
 	tx := &openwallet.Transaction{
 		From:       rawTx.TxFrom,

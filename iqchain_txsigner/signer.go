@@ -1,7 +1,7 @@
 package iqchain_txsigner
 
 import (
-	"github.com/assetsadapterstore/iqchain-adapter/sdk/crypto2"
+	"github.com/assetsadapterstore/iqchain-adapter/sdk/crypto"
 )
 
 var Default = &TransactionSigner{}
@@ -16,7 +16,7 @@ func (singer *TransactionSigner) SignTransactionHash(msg []byte, privateKey []by
 	//if err != owcrypt.SUCCESS {
 	//	return nil, fmt.Errorf("ECC sign hash failed")
 	//}
-	pk := crypto2.PrivateKeyFromBytes(privateKey)
+	pk := crypto.PrivateKeyFromBytes(privateKey)
 	signature2, _ := pk.Sign(msg)
 	return signature2, nil
 }

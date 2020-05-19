@@ -8,6 +8,7 @@
 package crypto
 
 func buildSignedTransaction(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
+	transaction.Timestamp = GetTime()
 	transaction.Sign(passphrase)
 
 	if len(secondPassphrase) > 0 {
@@ -19,244 +20,91 @@ func buildSignedTransaction(transaction *Transaction, passphrase string, secondP
 	return transaction
 }
 
-func buildMultiSignedTransaction(transaction *Transaction, signerIndex int, passphrase string) *Transaction {
-	transaction.SignMulti(signerIndex, passphrase)
-
-	transaction.Id = transaction.GetId()
-
-	return transaction
-}
-
-func BuildTransferMySelf(recipient string, amount FlexToshi, senderpk string, senderid string, nonce uint64) *Transaction {
+func BuildTransferMySelf(recipient string, amount FlexToshi, senderpk string, senderid string) *Transaction {
 	transaction := &Transaction{
+		Type:            TRANSACTION_TYPES.Transfer,
+		Fee:             GetFee(TRANSACTION_TYPES.Transfer),
+		RecipientId:     recipient,
+		Amount:          amount,
 		SenderPublicKey: senderpk,
+		Network:         58,
+		Asset:           &TransactionAsset{},
 		SenderId:        senderid,
-		Nonce:           nonce + 1,
-		Amount: amount,
-		RecipientId: recipient,
 	}
-
-	setCommonFields(transaction, TRANSACTION_TYPES.Transfer)
-
-	transaction.Asset = &TransactionAsset{}
 	transaction.Timestamp = GetTime()
 
 	return transaction
 }
 
-func setCommonFields(transaction *Transaction, transactionType uint16) {
-	if transaction.Fee == 0 {
-		transaction.Fee = GetFee(transactionType)
-	}
-
-	if transaction.Network == 0 {
-		transaction.Network = GetNetwork().Version
-	}
-
-	transaction.SecondSenderPublicKey = ""
-	transaction.SecondSignature = ""
-
-	if transaction.Timestamp == 0 {
-		transaction.Timestamp = GetTime()
-	}
-
-	transaction.Type = transactionType
-	transaction.TypeGroup = TRANSACTION_TYPE_GROUPS.Core
-	transaction.Version = 2
-}
-
-/** Set all fields and sign a TransactionTypes.Transfer transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Amount
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   RecipientId
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildTransfer(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.Transfer)
-
-	transaction.Asset = &TransactionAsset{}
-
-	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
-}
-
-/** Set all fields and sign a multi signature TransactionTypes.Transfer transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Amount
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   RecipientId
- *   Signatures - must be an array (could be empty); a new signature will be appended to it
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildTransferMultiSignature(transaction *Transaction, signerIndex int, passphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.Transfer)
-
-	transaction.Asset = &TransactionAsset{}
-
-	return buildMultiSignedTransaction(transaction, signerIndex, passphrase)
-}
-
-/** Set all fields and sign a TransactionTypes.SecondSignatureRegistration transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildSecondSignatureRegistration(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.SecondSignatureRegistration)
-
-	secondPublicKey, _ := PublicKeyFromPassphrase(secondPassphrase)
-
-	transaction.Amount = 0
-	transaction.Asset = &TransactionAsset{
-		Signature: &SecondSignatureRegistrationAsset{
-			PublicKey: HexEncode(secondPublicKey.Serialize()),
-		},
+func BuildTransfer(recipient string, amount FlexToshi, vendorField string, passphrase string, secondPassphrase string) *Transaction {
+	transaction := &Transaction{
+		Type:        TRANSACTION_TYPES.Transfer,
+		Fee:         GetFee(TRANSACTION_TYPES.Transfer),
+		RecipientId: recipient,
+		Amount:      amount,
+		VendorField: vendorField,
+		Asset:       &TransactionAsset{},
 	}
 
 	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
 }
 
-/** Set all fields and sign a TransactionTypes.DelegateRegistration transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Asset.Delegate.Username
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildDelegateRegistration(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.DelegateRegistration)
+func BuildSecondSignatureRegistration(passphrase string, secondPassphrase string) *Transaction {
+	transaction := &Transaction{
+		Type:  TRANSACTION_TYPES.SecondSignatureRegistration,
+		Fee:   GetFee(TRANSACTION_TYPES.SecondSignatureRegistration),
+		Asset: &TransactionAsset{},
+	}
+
+	publicKey, _ := PublicKeyFromPassphrase(passphrase)
+
+	transaction.Asset.Signature = &SecondSignatureRegistrationAsset{
+		PublicKey: HexEncode(publicKey.Serialize()),
+	}
 
 	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
 }
 
-/** Set all fields and sign a TransactionTypes.Vote transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Asset.Votes
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildVote(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.Vote)
+func BuildDelegateRegistration(username string, passphrase string, secondPassphrase string) *Transaction {
+	transaction := &Transaction{
+		Type:  TRANSACTION_TYPES.DelegateRegistration,
+		Fee:   GetFee(TRANSACTION_TYPES.DelegateRegistration),
+		Asset: &TransactionAsset{},
+	}
+
+	transaction.Asset.Delegate = &DelegateAsset{
+		Username: username,
+	}
+
+	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
+}
+
+func BuildVote(vote, passphrase string, secondPassphrase string) *Transaction {
+	transaction := &Transaction{
+		Type:  TRANSACTION_TYPES.Vote,
+		Fee:   GetFee(TRANSACTION_TYPES.Vote),
+		Asset: &TransactionAsset{},
+	}
 
 	transaction.RecipientId, _ = AddressFromPassphrase(passphrase)
+	transaction.Asset.Votes = append(transaction.Asset.Votes, vote)
 
 	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
 }
 
-/** Set all fields and sign a TransactionTypes.MultiSignatureRegistration transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Asset.MultiSignature
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildMultiSignatureRegistration(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.MultiSignatureRegistration)
+func BuildMultiSignatureRegistration(min byte, lifetime byte, keysgroup []string, passphrase string, secondPassphrase string) *Transaction {
+	transaction := &Transaction{
+		Type:  TRANSACTION_TYPES.MultiSignatureRegistration,
+		Asset: &TransactionAsset{},
+	}
 
-	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
-}
+	transaction.Asset.MultiSignature = &MultiSignatureRegistrationAsset{
+		Min:       min,
+		Keysgroup: keysgroup,
+		Lifetime:  lifetime,
+	}
 
-/** Set all fields and sign a TransactionTypes.Ipfs transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Asset.Ipfs
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildIpfs(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.Ipfs)
-
-	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
-}
-
-/** Set all fields and sign a TransactionTypes.MultiPayment transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Asset.Payments
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildMultiPayment(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.MultiPayment)
-
-	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
-}
-
-/** Set all fields and sign a TransactionTypes.DelegateResignation transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildDelegateResignation(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.DelegateResignation)
-
-	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
-}
-
-/** Set all fields and sign a TransactionTypes.HtlcLock transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Asset.Lock
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildHtlcLock(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.HtlcLock)
-
-	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
-}
-
-/** Set all fields and sign a TransactionTypes.HtlcClaim transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Asset.Claim
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildHtlcClaim(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.HtlcClaim)
-
-	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
-}
-
-/** Set all fields and sign a TransactionTypes.HtlcRefund transaction.
- * Members of the supplied transaction that must be set when calling this function:
- *   Asset.Refund
- *   Expiration - optional, could be 0 to designate no expiration
- *   Fee - optional, if 0, then it will be set to a default fee
- *   Network - optional, if 0, then it will be set to the configured network
- *   Nonce
- *   Timestamp - optional, if 0, then it will be set to the present time
- *   VendorField - optional */
-func BuildHtlcRefund(transaction *Transaction, passphrase string, secondPassphrase string) *Transaction {
-	setCommonFields(transaction, TRANSACTION_TYPES.HtlcRefund)
+	transaction.Fee = FlexToshi(len(keysgroup)+1) + GetFee(TRANSACTION_TYPES.MultiSignatureRegistration)
 
 	return buildSignedTransaction(transaction, passphrase, secondPassphrase)
 }
