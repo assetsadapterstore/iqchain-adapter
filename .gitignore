@@ -6,3 +6,4 @@
 util_test.go
 *.json
 README.md
+go.sum

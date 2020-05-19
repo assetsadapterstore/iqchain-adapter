@@ -138,6 +138,7 @@ func TestWalletManager_GetAddressList(t *testing.T) {
 		log.Error("unexpected error:", err)
 		return
 	}
+	
 	for i, w := range list {
 		log.Info("address[", i, "] :", w.Address)
 	}
